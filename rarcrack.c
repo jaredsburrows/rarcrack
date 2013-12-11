@@ -155,7 +155,7 @@ int loadstatus()
 			{
 				if (node->children && (strlen((const char*)node->children->content) > 0)) 
 				{
-					ABC = xmlStringDecodeEntities(parserctxt, (xmlChar*)node->children->content,XML_SUBSTITUTE_BOTH,0,0,0);
+					ABC = (char *)xmlStringDecodeEntities(parserctxt, (const xmlChar*)node->children->content, XML_SUBSTITUTE_BOTH, 0, 0, 0);
 				} 
 				else
 				{
@@ -166,7 +166,7 @@ int loadstatus()
 			{
 				if (node->children && (strlen((const char*)node->children->content) > 0)) 
 				{
-					tmp = xmlStringDecodeEntities(parserctxt, (xmlChar*)node->children->content, XML_SUBSTITUTE_BOTH,0,0,0);
+					tmp = (char *)xmlStringDecodeEntities(parserctxt, (const xmlChar*)node->children->content, XML_SUBSTITUTE_BOTH, 0, 0, 0);
 					strcpy(password,tmp);
 					curr_len = strlen(password);
 					printf("INFO: Resuming cracking from password: '%s'\n",password);
@@ -181,7 +181,7 @@ int loadstatus()
 			{
 				if (node->children && (strlen((const char*)node->children->content) > 0)) 
 				{
-					tmp = xmlStringDecodeEntities(parserctxt, node->children->content, XML_SUBSTITUTE_BOTH,0,0,0);
+					tmp = (char *)xmlStringDecodeEntities(parserctxt, node->children->content, XML_SUBSTITUTE_BOTH,0,0,0);
 					strcpy(password,tmp);
 					curr_len = strlen(password);
 					xmlMutexLock(finishedMutex);
@@ -336,7 +336,7 @@ void crack_start(unsigned int threads)
 
 void init(int argc, char **argv) 
 {
-	unsigned int i, j;
+	int i, j;
 	int help = 0;
 	int threads = 2;
 	int archive_type = -1;
