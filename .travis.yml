@@ -1,18 +1,46 @@
 language: c
 
+os:
+  - linux
+  - osx
+
 compiler:
-  - clang
   - gcc
+  - clang
+
+env:
+  global:
+    - LIBSTDC_VERSION=5
+    - CLANG_VERSION=3.6
+
+matrix:
+  allow_failures:
+    - compiler: clang
+    - os: osx
+
+before_install:
+  # Setup cmake
+  - sh scripts/install-cmake.sh
+
+  # Prepare compilers
+  - if [[ "$CXX" == "g++" || "$CC" == "gcc" ]]; then sh scripts/install-gcc.sh; fi
+  - if [[ "$CXX" == "clang++" || "$CC" == "clang" ]]; then sh scripts/install-clang.sh; fi
+
+  # Debug information
+  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then lsb_release -a; fi
+  - uname -a
+  - $CC --version
+  - $CXX --version
 
 script:
-  - make clean && make
-
-branches:
-  except:
-    - gh-pages
+  # Build with make
+  - make clean
+  - make
 
 notifications:
   email: false
 
-sudo: false
+sudo: required
 
+cache:
+  - apt
