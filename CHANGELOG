@@ -1,0 +1,9 @@
+Author: David Zoltan Kedves (kedazo@gmail.com)
+
+Version 0.2
+	Added multiple cracking threads support
+	Added 7z, zip support
+	Archive file type auto-detection
+
+Version 0.1
+	Inital version (rar cracking working)

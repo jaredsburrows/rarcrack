@@ -23,7 +23,7 @@ const char CMD_DETECT[] = "file -i -b %s";
 const char *TYPE[] = { "rar", "7z", "zip", "" };
 
 // File Types
-const char *MIME[] = { "application/x-rar", "application/octet-stream", "application/x-zip", "" };
+const char *MIME[] = { "application/x-rar;", "application/x-7z-compressed;", "application/zip;", "" };
 
 // Commnds for each file type
 const char *CMD[] = { "unrar t -y -p%s %s 2>&1", "7z t -y -p%s %s 2>&1", "unzip -P%s -t %s 2>&1", "" };
