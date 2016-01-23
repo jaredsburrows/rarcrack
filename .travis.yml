@@ -20,7 +20,7 @@ matrix:
 
 before_install:
   # Setup cmake
-  - sh scripts/install-cmake.sh
+  # - sh scripts/install-cmake.sh
 
   # Prepare compilers
   - if [[ "$CXX" == "g++" || "$CC" == "gcc" ]]; then sh scripts/install-gcc.sh; fi
