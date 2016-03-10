@@ -1,4 +1,4 @@
-Rarcrack [![Build Status](https://travis-ci.org/jaredsburrows/Rarcrack.png)](https://travis-ci.org/jaredsburrows/Rarcrack)
+Rarcrack [![Build Status](https://travis-ci.org/jaredsburrows/rarcrack.png)](https://travis-ci.org/jaredsburrows/rarcrack)
 ========
 
 Rarcrack - port for Mac OSX (works on Linux and Mac OSX)
