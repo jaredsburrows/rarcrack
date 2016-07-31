@@ -19,3 +19,4 @@ install:
 
 uninstall:
 	-rm -rf ${PREFIX}/bin/rarcrack
+

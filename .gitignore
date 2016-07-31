@@ -16,3 +16,8 @@
 *.exe
 *.out
 *.app
+
+# Outputs
+*.xml
+rarcrack
+

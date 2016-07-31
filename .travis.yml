@@ -16,7 +16,6 @@ env:
 matrix:
   allow_failures:
     - compiler: clang
-    - os: osx
 
 before_install:
   # Setup cmake
@@ -30,12 +29,9 @@ script:
   # Build with make
   - make clean
   - make
-  - ./rarcrack --type zip test.zip
-
-notifications:
-  email: false
 
 sudo: required
 
 cache:
   - apt
+
