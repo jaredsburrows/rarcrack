@@ -26,16 +26,11 @@ before_install:
   - if [[ "$CXX" == "g++" || "$CC" == "gcc" ]]; then sh scripts/install-gcc.sh; fi
   - if [[ "$CXX" == "clang++" || "$CC" == "clang" ]]; then sh scripts/install-clang.sh; fi
 
-  # Debug information
-  - if [[ "$TRAVIS_OS_NAME" = "linux" ]]; then lsb_release -a; fi
-  - uname -a
-  - $CC --version
-  - $CXX --version
-
 script:
   # Build with make
   - make clean
   - make
+  - ./rarcrack --type zip test.zip
 
 notifications:
   email: false
