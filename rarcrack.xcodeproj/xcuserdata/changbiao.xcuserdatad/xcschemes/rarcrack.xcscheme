@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "--type rar --threads 12 &quot;/Users/changbiao/Desktop/Lynda - Animating for Unity 3D in 3ds Max.rar&quot;"
+            argument = "--type rar --threads 12 $(SRCROOT)/test.rar"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
