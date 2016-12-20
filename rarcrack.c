@@ -223,6 +223,7 @@ void *status_thread() {
         xmlMutexUnlock(pwdMutex);
         savestatus();	//FIXME: this is wrong, when probing current password(s) is(are) not finished yet, and the program is exiting
     }
+    return NULL;
 }
 
 void *crack_thread() {
@@ -232,6 +233,7 @@ void *crack_thread() {
     FILE *Pipe;
     while (1) {
         current = nextpass();
+        // "unrar t -y -p1s3c /Users/changbiao/Desktop/Lynda - Animating for Unity 3D in 3ds Max.rar 2>&1"
         sprintf((char*)&cmd, finalcmd, current, filename);
         Pipe = popen(cmd, "r");
         while (! feof(Pipe)) {
@@ -259,6 +261,7 @@ void *crack_thread() {
         xmlMutexUnlock(finishedMutex);
         free(current);
     }
+    return NULL;
 }
 
 void crack_start(unsigned int threads) {

@@ -9,6 +9,9 @@ Rarcrack - port for Mac OSX (works on Linux and Mac OSX)
    - Linking errors
    - Segfaults
 
+Add Xcode project to build and run it! but it is so slowly!
+TODO: add unrar src and edit it to fix it!
+
 Originally source code by Copyright (C) 2007 David Zoltan Kedves - kedazo@gmail.com
 
 Download source from Sourceforge.net here: http://sourceforge.net/projects/rarcrack/files/rarcrack-0.2/
