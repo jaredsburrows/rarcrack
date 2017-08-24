@@ -1,34 +1,18 @@
 language: cpp
 
-os:
-  - linux
-  - osx
-
-compiler:
-  - gcc
-  - clang
-
 env:
   global:
     - LIBSTDC_VERSION=5
-    - CLANG_VERSION=3.6
-
-matrix:
-  allow_failures:
-    - compiler: clang
 
 before_install:
-  # Setup cmake
-  # - sh scripts/install-cmake.sh
-
   # Prepare compilers
-  - if [[ "$CXX" == "g++" || "$CC" == "gcc" ]]; then sh scripts/install-gcc.sh; fi
-  - if [[ "$CXX" == "clang++" || "$CC" == "clang" ]]; then sh scripts/install-clang.sh; fi
+  - sh scripts/install-gcc.sh
 
 script:
   # Build with make
   - make clean
   - make
+  - ./rarcrack --type zip test.zip
 
 sudo: required
 
