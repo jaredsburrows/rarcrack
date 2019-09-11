@@ -7,6 +7,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 Known bugs:
-   The progam isn't test unrar program available.
+   The progam isn't test unrar program available. --- FIXED
+   Unknown cause of error where "segmentation fault: 11" is thrown. might be on my (nn9dev) end. seems intermittent.
 
 
