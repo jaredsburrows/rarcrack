@@ -412,6 +412,13 @@ int main(int argc, char **argv) {
     } else {
         printf("unrar exists! you can proceed.\n\n");
     }
+    //check if 7z exists
+    if (system("which 7z > /dev/null 2>&1")) {
+        printf("7z doesn't exist! please install 7z and try again!");
+        return EXIT_FAILURE;
+    } else {
+        printf("7z exists! you can proceed.\n\n");
+    }
 
     init(argc,argv);
 
