@@ -405,6 +405,21 @@ int main(int argc, char **argv) {
     // Print author
     printf("RarCrack! 0.2 by David Zoltan Kedves (kedazo@gmail.com)\n\n");
 
+    //check if unrar exists
+    if (system("which unrar > /dev/null 2>&1")) {
+        printf("unrar doesn't exist! please install unrar and try again!");
+        return EXIT_FAILURE;
+    } else {
+        printf("unrar exists! you can proceed.\n\n");
+    }
+    //check if 7z exists
+    if (system("which 7z > /dev/null 2>&1")) {
+        printf("7z doesn't exist! please install 7z and try again!");
+        return EXIT_FAILURE;
+    } else {
+        printf("7z exists! you can proceed.\n\n");
+    }
+
     init(argc,argv);
 
     if (ABC != (char*) &default_ABC) {
