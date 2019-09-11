@@ -24,5 +24,8 @@ elif [ "$TRAVIS_OS_NAME" = osx ]; then
 fi
 
 # Debug information
-7z | grep Version
-unrar | grep UNRAR
+
+# thank you travis-ci, very cool!
+
+# 7z | grep Version
+# unrar | grep UNRAR
