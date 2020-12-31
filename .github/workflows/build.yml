@@ -1,0 +1,27 @@
+name: build
+
+on: [push, pull_request]
+
+env:
+  LIBSTDC_VERSION: 5
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v2
+
+      - name: Install GCC
+        run: sh scripts/install-gcc.sh
+
+      - name: Run Build
+        run: make clean && make
+
+      - name: Run rarcrack
+        run: ./rarcrack --type zip test.zip
+
