@@ -26,7 +26,7 @@ const char *TYPE[] = { "rar", "7z", "zip", "" };
 const char *MIME[] = { "application/x-rar;", "application/x-7z-compressed;", "application/zip;", "" };
 
 // Commnds for each file type
-const char *CMD[] = { "unrar t -y -p%s %s 2>&1", "7z t -y -p%s %s 2>&1", "unzip -P%s -t %s 2>&1", "" };
+const char *CMD[] = { "unrar t -y -p%s %s 2>&1", "7z t -y -p'%s' %s 2>&1", "unzip -P'%s' -t %s 2>&1", "" };
 
 // Max password length
 #define PWD_LEN 100
