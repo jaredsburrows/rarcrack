@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <signal.h>
 
 // libxml2 headers
 #include <libxml/xmlmemory.h>
@@ -13,28 +15,42 @@
 #include <libxml/threads.h>
 
 // Default char list
-char default_ABC[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-// Command checks the type of file
-const char CMD_DETECT[] = "file -i -b %s";
+static const char default_ABC[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 // File extensions
 // "" is the end of the list
-const char *TYPE[] = { "rar", "7z", "zip", "" };
+static const char *const TYPE[] = { "rar", "7z", "zip", "" };
 
 // File Types
-const char *MIME[] = { "application/x-rar;", "application/x-7z-compressed;", "application/zip;", "" };
-
-// Commnds for each file type
-const char *CMD[] = { "unrar t -y -p%s %s 2>&1", "7z t -y -p%s %s 2>&1", "unzip -P%s -t %s 2>&1", "" };
+static const char *const MIME[] = { "application/x-rar;", "application/x-7z-compressed;", "application/zip;", "" };
 
 // Max password length
 #define PWD_LEN 100
 
+typedef void (*CMD_exec_t)(const char password[PWD_LEN + 1], const char *filename);
+static void CMD_exec_unrar_7z(const char *prog, const char password[PWD_LEN + 1], const char *filename) {
+    char parg[2 + PWD_LEN + 1];
+    strcpy(parg, "-p");
+    strcpy(parg + 2, password);
+    execlp(prog, prog, "t", "-y", parg, filename, (char *)NULL);
+}
+static void CMD_exec_unrar(const char password[PWD_LEN + 1], const char *filename) {
+    CMD_exec_unrar_7z("unrar", password, filename);
+}
+static void CMD_exec_7z(const char password[PWD_LEN + 1], const char *filename) {
+    CMD_exec_unrar_7z("7z", password, filename);
+}
+static void CMD_exec_unzip(const char password[PWD_LEN + 1], const char *filename) {
+    execlp("unzip", "unzip", "-P", password, "-t", filename, (char *)NULL);
+}
+
+// Commnds for each file type
+static const CMD_exec_t CMD[] = { CMD_exec_unrar, CMD_exec_7z, CMD_exec_unzip, NULL };
+
 char *getfirstpassword();
 void crack_start(unsigned int threads);
 
-char* ABC = (char*) &default_ABC;
+const char* ABC = default_ABC;
 int ABCLEN;
 
 char password[PWD_LEN+1] = {'\0','\0'}; //this contains the actual password
@@ -42,12 +58,12 @@ char password_good[PWD_LEN+1] = {'\0', '\0'};  //this changed only once, when we
 unsigned int curr_len = 1; //current password length
 long counter = 0;	//this couning probed passwords
 xmlMutexPtr pwdMutex;	//mutex for password char array
-char filename[255];	//the archive file name
-char statname[259];	//status xml file name filename + ".xml"
+const char *filename;	//the archive file name
+char *statname;	//status xml file name filename + ".xml"
 xmlDocPtr status;
 int finished = 0;
 xmlMutexPtr finishedMutex;
-char finalcmd[300] = {'\0', '\0'}; //this depending on arhive file type, it's a command to test file with password
+CMD_exec_t finalcmd; //this depending on arhive file type, it's a command to test file with password
 
 char *getfirstpassword() {
     static char ret[2];
@@ -194,48 +210,32 @@ void nextpass2(char *p, unsigned int n) {
     }
 }
 
-char *nextpass() {
+void nextpass(char ok[static PWD_LEN+1]) {
     //IMPORTANT: the returned string must be freed
-    char *ok = malloc(sizeof(char)*(PWD_LEN+1));
     xmlMutexLock(pwdMutex);
     strcpy(ok, password);
     nextpass2((char*) &password, curr_len - 1);
     xmlMutexUnlock(pwdMutex);
-    return ok;
-}
-
-void *status_thread() {
-    int pwds;
-    const short status_sleep = 3;
-    while(1) {
-        sleep(status_sleep);
-        xmlMutexLock(finishedMutex);
-        pwds = counter / status_sleep;
-        counter = 0;
-
-        if (finished != 0) {
-            break;
-        }
-
-        xmlMutexUnlock(finishedMutex);
-        xmlMutexLock(pwdMutex);
-        printf("Probing: '%s' [%d pwds/sec]\n", password, pwds);
-        xmlMutexUnlock(pwdMutex);
-        savestatus();	//FIXME: this is wrong, when probing current password(s) is(are) not finished yet, and the program is exiting
-    }
 }
 
 void *crack_thread() {
-    char *current;
-    char ret[200];
-    char cmd[400];
+    char current[PWD_LEN+1];
+    char *ret = NULL;
+    size_t retlen = 0;
     FILE *Pipe;
+    int fds[2];
     while (1) {
-        current = nextpass();
-        sprintf((char*)&cmd, finalcmd, current, filename);
-        Pipe = popen(cmd, "r");
-        while (! feof(Pipe)) {
-            fgets((char*)&ret, 200, Pipe);
+        nextpass(current);
+        (void) -pipe2(fds, O_CLOEXEC);
+        if (!vfork()) {
+            dup2(fds[1], 1);
+            dup2(fds[1], 2);
+            finalcmd(current, filename);
+            _exit(127);
+        }
+        close(fds[1]);
+        Pipe = fdopen(fds[0], "re");
+        while (getline(&ret, &retlen, Pipe) != -1) {
             if (strcasestr(ret, "ok") != NULL) {
                 strcpy(password_good, current);
                 xmlMutexLock(finishedMutex);
@@ -247,7 +247,8 @@ void *crack_thread() {
             }
         }
 
-        pclose(Pipe);
+        fclose(Pipe);
+
         xmlMutexLock(finishedMutex);
         counter++;
 
@@ -257,25 +258,42 @@ void *crack_thread() {
         }
 
         xmlMutexUnlock(finishedMutex);
-        free(current);
     }
+    free(ret);
+    return 0;
 }
 
 void crack_start(unsigned int threads) {
-    pthread_t th[13];
+    pthread_t *th = calloc(threads, sizeof(*th));
     unsigned int i;
+
+    signal(SIGCHLD, SIG_IGN);
 
     for (i = 0; i < threads; i++) {
         (void) pthread_create(&th[i], NULL, crack_thread, NULL);
     }
 
-    (void) pthread_create(&th[12], NULL, status_thread, NULL);
+    const short status_sleep = 3;
+    while(1) {
+        sleep(status_sleep);
+        xmlMutexLock(finishedMutex);
+        int pwds = counter / status_sleep;
+        counter = 0;
+
+        if (finished != 0) {
+            break;
+        }
+
+        xmlMutexUnlock(finishedMutex);
+        xmlMutexLock(pwdMutex);
+        printf("Probing: '%s' [%d pwds/sec]\n", password, pwds);
+        xmlMutexUnlock(pwdMutex);
+        savestatus();   //FIXME: this is wrong, when probing current password(s) is(are) not finished yet, and the program is exiting
+    }
 
     for (i = 0; i < threads; i++) {
         (void) pthread_join(th[i], NULL);
     }
-
-    (void) pthread_join(th[12], NULL);
 }
 
 void init(int argc, char **argv) {
@@ -284,7 +302,6 @@ void init(int argc, char **argv) {
     int threads = 1;
     int archive_type = -1;
     FILE* totest;
-    char test[300];
     xmlInitThreads();
     pwdMutex = xmlNewMutex();
     finishedMutex = xmlNewMutex();
@@ -300,7 +317,7 @@ void init(int argc, char **argv) {
                 printf("         --type: you can specify the archive program, this needed when\n");
                 printf("                 the program couldn't detect the proper file type\n");
                 printf("         --threads: you can specify how many threads\n");
-                printf("                    will be run, maximum 12 (default: 2)\n\n");
+                printf("                    will be run (default: 1)\n\n");
                 printf("Info:    This program supports only RAR, ZIP and 7Z encrypted archives.\n");
                 printf("         RarCrack! usually detects the archive type.\n\n");
                 help = 1;
@@ -309,20 +326,16 @@ void init(int argc, char **argv) {
                 if ((i + 1) < argc) {
                     sscanf(argv[++i], "%d", &threads);
                     if (threads < 1) threads = 1;
-                    if (threads > 12) {
-                        printf("INFO: number of threads adjusted to 12\n");
-                        threads = 12;
-                    }
                 } else {
                     printf("ERROR: missing parameter for option: --threads!\n");
                     help = 1;
                 }
             } else if (strcmp(argv[i],"--type") == 0) {
                 if ((i + 1) < argc) {
-                    sscanf(argv[++i], "%s", test);
+                    const char * tp = argv[++i];
                     for (j = 0; strcmp(TYPE[j], "") != 0; j++) {
-                        if (strcmp(TYPE[j], test) == 0) {
-                            strcpy(finalcmd, CMD[j]);
+                        if (strcmp(TYPE[j], tp) == 0) {
+                            finalcmd = CMD[j];
                             archive_type = j;
                             break;
                         }
@@ -330,14 +343,14 @@ void init(int argc, char **argv) {
 
                     if (archive_type < 0) {
                         printf("WARNING: invalid parameter --type %s!\n", argv[i]);
-                        finalcmd[0] = '\0';
+                        finalcmd = NULL;
                     }
                 } else {
                     printf("ERROR: missing parameter for option: --type!\n");
                     help = 1;
                 }
             } else {
-                strcpy((char*)&filename, argv[i]);
+                filename = argv[i];
             }
         }
     }
@@ -346,26 +359,28 @@ void init(int argc, char **argv) {
         return;
     }
 
-    sprintf((char*)&statname,"%s.xml",(char*)&filename);
-    totest = fopen(filename,"r");
-    if (totest == NULL) {
+    if (asprintf(&statname,"%s.xml",filename) == -1) {
+        perror("ERROR");
+        return;
+    }
+    if (!freopen(filename, "r", stdin)) {
         printf("ERROR: The specified file (%s) is not exists or \n", filename);
         printf("       you don't have a right permissions!\n");
         return;
-    } else {
-        fclose(totest);
     }
 
-    if (finalcmd[0] == '\0') {
+    if (!finalcmd) {
         //when we specify the file type, the programm will skip the test
-        sprintf((char*)&test, CMD_DETECT, filename);
-        totest = popen(test,"r");
-        fscanf(totest,"%s",(char*)&test);
+        char mime[50];
+        totest = popen("file -i -b -","r");
+        if (fscanf(totest,"%49s",mime) != 1) {
+            mime[0] = '\0';
+        }
         pclose(totest);
 
         for (i = 0; strcmp(MIME[i],"") != 0; i++) {
-            if (strcmp(MIME[i],test) == 0) {
-                strcpy(finalcmd,CMD[i]);
+            if (strcmp(MIME[i],mime) == 0) {
+                finalcmd = CMD[i];
                 archive_type = i;
                 break;
             }
@@ -380,7 +395,7 @@ void init(int argc, char **argv) {
         }
     }
 
-    if (finalcmd[0] == '\0') {
+    if (!finalcmd) {
         printf("ERROR: Couldn't detect archive type\n");
         return;
     }
@@ -406,19 +421,4 @@ int main(int argc, char **argv) {
     printf("RarCrack! 0.2 by David Zoltan Kedves (kedazo@gmail.com)\n\n");
 
     init(argc,argv);
-
-    if (ABC != (char*) &default_ABC) {
-        xmlFree(ABC);
-    }
-
-    if (status) {
-        xmlFreeDoc(status);
-    }
-
-    // Free memory
-    xmlFreeMutex(pwdMutex);
-    xmlFreeMutex(finishedMutex);
-
-    // 0
-    return EXIT_SUCCESS;
 }
